@@ -1,8 +1,8 @@
 onnxruntime==1.12.1
-numpy==1.22.3
-opencv-python==4.6.0
+numpy
+opencv-python
 scikit-learn==1.1.1
 tqdm
-fastapi==0.81.0
-uvicorn==0.18.3
-python-multipart==0.0.5
+fastapi
+uvicorn
+python-multipart
