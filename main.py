@@ -26,19 +26,29 @@ providers = ['CPUExecutionProvider']
 model = rt.InferenceSession(MODEL_PATH, providers=providers)
 
 
-with open("./knn.pickle", "rb") as f:
-    clf = pickle.load(f)
+clf = None
+x_train = np.array([])
+y_train = np.array([])
+class_dict = {}
+class_dict_reversed = {}
 
-with open("./data.npy", "rb") as f:
-    x_train = pickle.load(f)
+try:
+    with open("./knn.pickle", "rb") as f:
+        clf = pickle.load(f)
 
-with open("./labels.npy", "rb") as f:
-    y_train = pickle.load(f)
+    with open("./data.npy", "rb") as f:
+        x_train = pickle.load(f)
 
-with open("./classes.json", "r") as f:
-    classes = json.load(f)
-    class_dict = classes["class_dict"]
-    class_dict_reversed = classes["class_dict_reversed"]
+    with open("./labels.npy", "rb") as f:
+        y_train = pickle.load(f)
+
+    with open("./classes.json", "r") as f:
+        classes = json.load(f)
+        class_dict = classes["class_dict"]
+        class_dict_reversed = classes["class_dict_reversed"]
+except:
+    print("File config not found")
+
 
 def preprocess(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
