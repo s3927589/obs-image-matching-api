@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, status, Request, Response, File , UploadFile
 # from tensorflow.keras.models import load_model
 import pickle
+import os
 import json
 import numpy as np
 import urllib.request
@@ -14,9 +15,15 @@ from models import AddItemForm
 
 app = FastAPI()
 TARGET_SIZE = (300, 300)
+MODEL_PATH = "./efficient.onnx"
+if not os.path.isfile(MODEL_PATH):
+    print("Downloading model")
+    urllib.request.urlretrieve("https://firebasestorage.googleapis.com/v0/b/obs-rmit.appspot.com/o/ai%2Fefficient.onnx?alt=media&token=e0f95647-481c-40d4-8c00-d2f7bdad0492", MODEL_PATH)
+    print("Model downloaded")
+
 # model = load_model("./efficient.h5")
 providers = ['CPUExecutionProvider']
-model = rt.InferenceSession("./efficient.onnx", providers=providers)
+model = rt.InferenceSession(MODEL_PATH, providers=providers)
 
 
 with open("./knn.pickle", "rb") as f:
