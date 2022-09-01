@@ -1,5 +1,4 @@
-from fastapi import FastAPI, HTTPException, status, Request, Response, File , UploadFile
-# from tensorflow.keras.models import load_model
+from fastapi import FastAPI, status, File, UploadFile
 import pickle
 import os
 import json
@@ -11,15 +10,42 @@ import onnxruntime as rt
 import cv2
 from sklearn.neighbors import KNeighborsClassifier
 from models import AddItemForm
+import pyrebase
+
+
+config = {
+    "apiKey": "AIzaSyDHDyFoXS-E7sZNJQ9G9Px9AEMStUtyrjw",
+    "authDomain": "obs-rmit.firebaseapp.com",
+    "databaseURL": "",
+    "projectId": "obs-rmit",
+    "storageBucket": "obs-rmit.appspot.com",
+    "serviceAccount": "./obs-rmit-firebase-adminsdk.json"
+}
+
+app = pyrebase.initialize_app(config)
+storage = app.storage()
+
+# storage.child("ai/knn.pickle").put("../api/knn.pickle")
+# storage.download("ai/knn.pickle", "knn.pickle")
 
 
 app = FastAPI()
 TARGET_SIZE = (300, 300)
-MODEL_PATH = "./efficient.onnx"
-if not os.path.isfile(MODEL_PATH):
-    print("Downloading model")
-    urllib.request.urlretrieve("https://firebasestorage.googleapis.com/v0/b/obs-rmit.appspot.com/o/ai%2Fefficient.onnx?alt=media&token=e0f95647-481c-40d4-8c00-d2f7bdad0492", MODEL_PATH)
-    print("Model downloaded")
+MODEL_PATH = "efficient.onnx"
+CLF_PATH = "knn.pickle"
+CLASS_PATH = "classes.json"
+X_TRAIN_PATH = "data.npy"
+Y_TRAIN_PATH = "labels.npy"
+data_path_list = [MODEL_PATH, CLF_PATH, CLASS_PATH, X_TRAIN_PATH, Y_TRAIN_PATH]
+
+STORAGE_DIR = "ai/"
+
+for data_path in data_path_list:
+    if not os.path.isfile(data_path):
+        print("Downloading", data_path)
+        storage.child(STORAGE_DIR + data_path).download(STORAGE_DIR + data_path, "./" + data_path)
+        print("Downloaded", data_path)
+
 
 # model = load_model("./efficient.h5")
 providers = ['CPUExecutionProvider']
@@ -33,27 +59,28 @@ class_dict = {}
 class_dict_reversed = {}
 
 try:
-    with open("./knn.pickle", "rb") as f:
+    with open(CLF_PATH, "rb") as f:
         clf = pickle.load(f)
 
-    with open("./data.npy", "rb") as f:
+    with open(X_TRAIN_PATH, "rb") as f:
         x_train = pickle.load(f)
 
-    with open("./labels.npy", "rb") as f:
+    with open(Y_TRAIN_PATH, "rb") as f:
         y_train = pickle.load(f)
 
-    with open("./classes.json", "r") as f:
+    with open(CLASS_PATH, "r") as f:
         classes = json.load(f)
         class_dict = classes["class_dict"]
         class_dict_reversed = classes["class_dict_reversed"]
 except:
-    print("File config not found")
+    print("File data not found")
 
 
 def preprocess(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, TARGET_SIZE)
     return img
+
 
 def load_img(img_path):
     img = cv2.imread(img_path)
@@ -145,9 +172,11 @@ def extract_features(img_list):
 
 def get_pred(img):
     feat = get_feat(img)
-    _, pred = clf.kneighbors(np.expand_dims(feat, axis=0), n_neighbors=4)
+    dis, pred = clf.kneighbors(np.expand_dims(feat, axis=0), n_neighbors=4)
+    dis = dis[0]
     pred = pred[0]
     filter_pred = []
+    pred = pred[dis < 0.75]
     for index in pred:
         try:
             if y_train[index] not in filter_pred:
@@ -161,6 +190,27 @@ def get_pred(img):
         if ans is not None:
             result.append(ans)
     return result
+
+
+def update_storage():
+    # save models
+    with open(CLF_PATH, "wb") as f:
+        pickle.dump(clf, f)
+    with open(X_TRAIN_PATH, "wb") as f:
+        pickle.dump(x_train, f)
+    with open(Y_TRAIN_PATH, "wb") as f:
+        pickle.dump(y_train, f)
+    with open(CLASS_PATH, "w") as f:
+        json.dump({
+            "class_dict": class_dict,
+            "class_dict_reversed": class_dict_reversed,
+        }, f)
+
+    for data_path in data_path_list[1:]:
+        if os.path.isfile(data_path):
+            print("Uploading", data_path)
+            storage.child(STORAGE_DIR + data_path).put("./" + data_path)
+            print("Uploaded", data_path)
 
 
 @app.post('/api/image', status_code=status.HTTP_200_OK)
@@ -212,27 +262,17 @@ async def add_item(data: AddItemForm):
         print(y_train_temp)
 
         # train the model
-        clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
-        clf.fit(x_train_temp, y_train_temp)
+        clf_temp = KNeighborsClassifier(n_neighbors=3, metric="cosine")
+        clf_temp.fit(x_train_temp, y_train_temp)
 
+        clf = clf_temp
         x_train = x_train_temp
         y_train = y_train_temp
 
         class_dict[item_id] = new_label
         class_dict_reversed[str(new_label)] = item_id
 
-        # save models
-        with open("knn.pickle", "wb") as f:
-            pickle.dump(clf, f)
-        with open("data.npy", "wb") as f:
-            pickle.dump(x_train, f)
-        with open("labels.npy", "wb") as f:
-            pickle.dump(y_train, f)
-        with open("classes.json", "w") as f:
-            json.dump({
-                "class_dict": class_dict,
-                "class_dict_reversed": class_dict_reversed,
-            }, f)
+        update_storage()
 
         return {
             "success": True
@@ -262,9 +302,10 @@ async def delete_item(item_id: str):
     print(y_train_temp)
 
     # train the model
-    clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
-    clf.fit(x_train_temp, y_train_temp)
+    clf_temp = KNeighborsClassifier(n_neighbors=3, metric="cosine")
+    clf_temp.fit(x_train_temp, y_train_temp)
 
+    clf = clf_temp
     x_train = x_train_temp
     y_train = y_train_temp
 
@@ -272,17 +313,7 @@ async def delete_item(item_id: str):
     class_dict_reversed = {x: y for x, y in class_dict_reversed.items() if y != item_id}
 
     # save models
-    with open("knn.pickle", "wb") as f:
-        pickle.dump(clf, f)
-    with open("data.npy", "wb") as f:
-        pickle.dump(x_train, f)
-    with open("labels.npy", "wb") as f:
-        pickle.dump(y_train, f)
-    with open("classes.json", "w") as f:
-        json.dump({
-            "class_dict": class_dict,
-            "class_dict_reversed": class_dict_reversed,
-        }, f)
+    update_storage()
 
     return {
         "success": True,
@@ -337,27 +368,17 @@ async def update_item(data: AddItemForm):
         print(y_train_temp)
 
         # train the model
-        clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
-        clf.fit(x_train_temp, y_train_temp)
+        clf_temp = KNeighborsClassifier(n_neighbors=3, metric="cosine")
+        clf_temp.fit(x_train_temp, y_train_temp)
 
+        clf = clf_temp
         x_train = x_train_temp
         y_train = y_train_temp
 
         class_dict[item_id] = target_label
         class_dict_reversed[str(target_label)] = item_id
 
-        # save models
-        with open("knn.pickle", "wb") as f:
-            pickle.dump(clf, f)
-        with open("data.npy", "wb") as f:
-            pickle.dump(x_train, f)
-        with open("labels.npy", "wb") as f:
-            pickle.dump(y_train, f)
-        with open("classes.json", "w") as f:
-            json.dump({
-                "class_dict": class_dict,
-                "class_dict_reversed": class_dict_reversed,
-            }, f)
+        update_storage()
 
         return {
             "success": True
