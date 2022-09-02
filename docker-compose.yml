@@ -1,0 +1,7 @@
+version: '2.0'
+services:
+  obs:
+    image: obs
+    build: .
+    ports:
+      - "8000:8000"
