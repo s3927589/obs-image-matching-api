@@ -1,9 +1,9 @@
 onnxruntime==1.12.1
 numpy
 opencv-python
-opencv-python-headless
 scikit-learn==1.1.1
 tqdm
 fastapi
 uvicorn
 python-multipart
+pyrebase4
