@@ -25,17 +25,12 @@ config = {
 app = pyrebase.initialize_app(config)
 storage = app.storage()
 
-# storage.child("ai/knn.pickle").put("../api/knn.pickle")
-# storage.download("ai/knn.pickle", "knn.pickle")
-
 
 app = FastAPI()
 TARGET_SIZE = (300, 300)
 MODEL_PATH = "efficient.onnx"
 CLF_PATH = "knn.pickle"
 CLASS_PATH = "classes.json"
-# X_TRAIN_PATH = "data.npy"
-# Y_TRAIN_PATH = "labels.npy"
 data_path_list = [MODEL_PATH, CLF_PATH, CLASS_PATH]
 
 STORAGE_DIR = "ai/"
@@ -47,26 +42,17 @@ for data_path in data_path_list:
         print("Downloaded", data_path)
 
 
-# model = load_model("./efficient.h5")
 providers = ['CPUExecutionProvider']
 model = rt.InferenceSession(MODEL_PATH, providers=providers)
 
 
 clf = None
-# x_train = np.array([])
-# y_train = np.array([])
 class_dict = {}
 class_dict_reversed = {}
 
 try:
     with open(CLF_PATH, "rb") as f:
         clf = pickle.load(f)
-
-    # with open(X_TRAIN_PATH, "rb") as f:
-    #     x_train = pickle.load(f)
-
-    # with open(Y_TRAIN_PATH, "rb") as f:
-    #     y_train = pickle.load(f)
 
     with open(CLASS_PATH, "r") as f:
         classes = json.load(f)
@@ -99,7 +85,6 @@ def load_img_from_url(url):
 def get_feat(img):
     return model.run(["top_dropout"],
                      {"input_4": np.expand_dims(img, axis=0).astype("float32")})[0][0]
-    # return model.predict(np.expand_dims(img, axis=0))[0]
 
 
 def cosine_similarity(a, b):
@@ -159,9 +144,6 @@ def extract_features(img_list):
     for raw_img in tqdm(img_list):
         try:
             imgAugList = augment(raw_img)
-            # for img in imgAugList:
-            #     feat = get_feat(img)
-            # feats = model.predict(np.array(imgAugList))
             feats = model.run(["top_dropout"],
                               {"input_4": np.array(imgAugList).astype("float32")})[0]
             data.extend(feats)
@@ -199,10 +181,6 @@ def update_storage():
     # save models
     with open(CLF_PATH, "wb") as f:
         pickle.dump(clf, f)
-    # with open(X_TRAIN_PATH, "wb") as f:
-    #     pickle.dump(x_train, f)
-    # with open(Y_TRAIN_PATH, "wb") as f:
-    #     pickle.dump(y_train, f)
     with open(CLASS_PATH, "w") as f:
         json.dump({
             "class_dict": class_dict,
@@ -245,10 +223,11 @@ async def compare_image(file: UploadFile = File(...)):
 def add_item(data: AddItemForm):
     item_id = data.item_id
     imageUrls = data.imageUrls
-    # global x_train, y_train, clf, class_dict, class_dict_reversed
+
     global clf, class_dict, class_dict_reversed
     x_train = clf._fit_X
     y_train = clf._y
+
     try:
         img_list = []
         for url in imageUrls:
@@ -260,8 +239,13 @@ def add_item(data: AddItemForm):
                 continue
             print("Loaded")
             img = preprocess(img)
-            # cv2.imwrite(f"Img {len(img_list)}.jpg", img)
             img_list.append(img)
+
+        if len(img_list) == 0:
+            return {
+                "success": False,
+                "message": "Cannot load image"
+            }
 
         x = extract_features(img_list)
         new_label = int(np.max(y_train) + 1)
@@ -275,8 +259,6 @@ def add_item(data: AddItemForm):
         # train the model
         clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
         clf.fit(x_train, y_train)
-        # x_train = x_train_temp
-        # y_train = y_train_temp
 
         class_dict[item_id] = new_label
         class_dict_reversed[str(new_label)] = item_id
@@ -296,7 +278,6 @@ def add_item(data: AddItemForm):
 
 @app.delete('/api/delete_item/{item_id}', status_code=status.HTTP_200_OK)
 def delete_item(item_id: str):
-    # global x_train, y_train, clf, class_dict, class_dict_reversed
     global clf, class_dict, class_dict_reversed
     x_train = clf._fit_X
     y_train = clf._y
@@ -318,10 +299,6 @@ def delete_item(item_id: str):
     clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
     clf.fit(x_train, y_train)
 
-    # clf = clf_temp
-    # x_train = x_train_temp
-    # y_train = y_train_temp
-
     class_dict = {x: y for x, y in class_dict.items() if x != item_id}
     class_dict_reversed = {x: y for x, y in class_dict_reversed.items() if y != item_id}
 
@@ -338,12 +315,10 @@ def delete_item(item_id: str):
 def update_item(data: AddItemForm):
     item_id = data.item_id
     imageUrls = data.imageUrls
-    # global x_train, y_train, clf, class_dict, class_dict_reversed
     global clf, class_dict, class_dict_reversed
     x_train = clf._fit_X
     y_train = clf._y
 
-    # delete old data
     if item_id not in class_dict:
         return {
             "success": False,
@@ -362,7 +337,6 @@ def update_item(data: AddItemForm):
                 continue
             print("Loaded")
             img = preprocess(img)
-            # cv2.imwrite(f"Img {len(img_list)}.jpg", img)
             img_list.append(img)
 
         if len(img_list) == 0:
@@ -393,8 +367,6 @@ def update_item(data: AddItemForm):
         # train the model
         clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
         clf.fit(x_train, y_train)
-
-        # clf = clf_temp
 
         class_dict[item_id] = target_label
         class_dict_reversed[str(target_label)] = item_id
