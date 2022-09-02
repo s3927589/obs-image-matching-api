@@ -218,6 +218,11 @@ def update_storage():
 
 @app.post('/api/image', status_code=status.HTTP_200_OK)
 async def compare_image(file: UploadFile = File(...)):
+    if len(class_dict) == 0:
+        return {
+            "itemIds": []
+        }
+
     try:
         contents = await file.read()
         nparr = np.fromstring(contents, np.uint8)
@@ -237,7 +242,7 @@ async def compare_image(file: UploadFile = File(...)):
 
 
 @app.post('/api/add_item', status_code=status.HTTP_200_OK)
-async def add_item(data: AddItemForm):
+def add_item(data: AddItemForm):
     item_id = data.item_id
     imageUrls = data.imageUrls
     # global x_train, y_train, clf, class_dict, class_dict_reversed
@@ -268,10 +273,8 @@ async def add_item(data: AddItemForm):
         print(y_train)
 
         # train the model
-        clf_temp = KNeighborsClassifier(n_neighbors=3, metric="cosine")
-        clf_temp.fit(x_train, y_train)
-
-        clf = clf_temp
+        clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
+        clf.fit(x_train, y_train)
         # x_train = x_train_temp
         # y_train = y_train_temp
 
@@ -292,7 +295,7 @@ async def add_item(data: AddItemForm):
 
 
 @app.delete('/api/delete_item/{item_id}', status_code=status.HTTP_200_OK)
-async def delete_item(item_id: str):
+def delete_item(item_id: str):
     # global x_train, y_train, clf, class_dict, class_dict_reversed
     global clf, class_dict, class_dict_reversed
     x_train = clf._fit_X
@@ -312,10 +315,10 @@ async def delete_item(item_id: str):
     print(y_train)
 
     # train the model
-    clf_temp = KNeighborsClassifier(n_neighbors=3, metric="cosine")
-    clf_temp.fit(x_train, y_train)
+    clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
+    clf.fit(x_train, y_train)
 
-    clf = clf_temp
+    # clf = clf_temp
     # x_train = x_train_temp
     # y_train = y_train_temp
 
@@ -332,7 +335,7 @@ async def delete_item(item_id: str):
 
 
 @app.put('/api/update_item', status_code=status.HTTP_200_OK)
-async def update_item(data: AddItemForm):
+def update_item(data: AddItemForm):
     item_id = data.item_id
     imageUrls = data.imageUrls
     # global x_train, y_train, clf, class_dict, class_dict_reversed
@@ -379,7 +382,6 @@ async def update_item(data: AddItemForm):
         class_dict = {x: y for x, y in class_dict.items() if x != item_id}
         class_dict_reversed = {x: y for x, y in class_dict_reversed.items() if y != item_id}
 
-
         x = extract_features(img_list)
         y = [target_label] * len(x)
         y = np.array(y)
@@ -389,10 +391,10 @@ async def update_item(data: AddItemForm):
         print(y_train)
 
         # train the model
-        clf_temp = KNeighborsClassifier(n_neighbors=3, metric="cosine")
-        clf_temp.fit(x_train, y_train)
+        clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
+        clf.fit(x_train, y_train)
 
-        clf = clf_temp
+        # clf = clf_temp
 
         class_dict[item_id] = target_label
         class_dict_reversed[str(target_label)] = item_id
