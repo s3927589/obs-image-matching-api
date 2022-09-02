@@ -169,7 +169,7 @@ def extract_features(img_list):
 
 def get_pred(img):
     feat = get_feat(img)
-    dis, pred = clf.kneighbors(np.expand_dims(feat, axis=0), n_neighbors=4)
+    dis, pred = clf.kneighbors(np.expand_dims(feat, axis=0), n_neighbors=10)
     dis = dis[0]
     pred = pred[0]
     filter_pred = []
