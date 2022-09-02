@@ -4,7 +4,9 @@ RUN pip install -r requirements.txt
 
 FROM python:3.9-slim AS users
 WORKDIR /obs
-# EXPOSE 8000
+# ARG PORT
+# ENV PORT $PORT
+# EXPOSE $PORT
 
 COPY --from=base /root/.cache /root/.cache
 COPY --from=base requirements.txt .
@@ -15,4 +17,5 @@ RUN pip install -r requirements.txt && rm -rf /root/.cache
 
 COPY . /obs
 
-ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "${PORT}"]
+# ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "$PORT"]
+ENTRYPOINT ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
