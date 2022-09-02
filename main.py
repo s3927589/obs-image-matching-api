@@ -11,6 +11,7 @@ import cv2
 from sklearn.neighbors import KNeighborsClassifier
 from models import AddItemForm
 import pyrebase
+from fastapi.middleware.cors import CORSMiddleware
 
 
 config = {
@@ -22,11 +23,25 @@ config = {
     "serviceAccount": "./obs-rmit-firebase-adminsdk.json"
 }
 
-app = pyrebase.initialize_app(config)
-storage = app.storage()
+firebase_app = pyrebase.initialize_app(config)
+storage = firebase_app.storage()
 
 
 app = FastAPI()
+
+origins = [
+    "*",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 TARGET_SIZE = (300, 300)
 MODEL_PATH = "efficient.onnx"
 CLF_PATH = "knn.pickle"
