@@ -5,3 +5,6 @@ services:
     build: .
     ports:
       - "8000:8000"
+      - "15672:15672"
+    environment:
+        PORT: '8000'
