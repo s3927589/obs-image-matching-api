@@ -9,8 +9,10 @@ import onnxruntime as rt
 import cv2
 from sklearn.neighbors import KNeighborsClassifier
 import pyrebase
+import logging
 
 
+logging.basicConfig(level=logging.INFO)
 TARGET_SIZE = (300, 300)
 
 
@@ -103,16 +105,6 @@ class Classifier:
         firebase_app = pyrebase.initialize_app(config)
         self.storage = firebase_app.storage()
 
-        # for data_path in self.data_path_list:
-        #     if not os.path.isfile(data_path):
-        #         print("Downloading", data_path)
-        #         self.storage.child(self.storage_dir + data_path).download(self.storage_dir + data_path, "./" + data_path)
-        #         print("Downloaded", data_path)
-
-        # providers = ['CPUExecutionProvider']
-        # self.model = rt.InferenceSession(self.model_path, providers=providers)
-
-
         # load model and config
         self.model = None
         self.clf = None
@@ -122,23 +114,12 @@ class Classifier:
 
         self.load_data()
 
-        # try:
-        #     with open(self.clf_path, "rb") as f:
-        #         self.clf = pickle.load(f)
-
-        #     with open(self.class_path, "r") as f:
-        #         classes = json.load(f)
-        #         self.class_dict = classes["class_dict"]
-        #         self.class_dict_reversed = classes["class_dict_reversed"]
-        # except:
-        #     print("File data not found")
-
     def load_data(self):
         for data_path in self.data_path_list:
             if not os.path.isfile(data_path):
-                print("Downloading", data_path)
+                logging.info(f"Downloading {data_path}")
                 self.storage.child(self.storage_dir + data_path).download(self.storage_dir + data_path, "./" + data_path)
-                print("Downloaded", data_path)
+                logging.info(f"Downloaded {data_path}")
 
         providers = ['CPUExecutionProvider']
         self.model = rt.InferenceSession(self.model_path, providers=providers)
@@ -147,15 +128,15 @@ class Classifier:
         try:
             with open(self.clf_path, "rb") as f:
                 self.clf = pickle.load(f)
-            print("Loaded clf")
+            logging.info("Loaded clf")
 
             with open(self.class_path, "r") as f:
                 classes = json.load(f)
                 self.class_dict = classes["class_dict"]
                 self.class_dict_reversed = classes["class_dict_reversed"]
-            print("Loaded classes", self.class_dict)
+            logging.info(f"Loaded classes {self.class_dict}")
         except:
-            print("File data not found")
+            logging.info("File data not found")
 
     def get_feat(self, img):
         return self.model.run(["top_dropout"],
@@ -188,15 +169,15 @@ class Classifier:
         pred = pred[0]
         filter_pred = []
         pred = pred[dis < self.out_domain_threshold]
-        print(dis)
-        print(pred)
+        logging.info(f"{dis}")
+        logging.info(f"{pred}")
         y_train = self.clf._y
         for index in pred:
             try:
                 if y_train[index] not in filter_pred:
                     filter_pred.append(y_train[index])
             except:
-                print("Error when finding index")
+                logging.info("Error when finding index")
                 pass
 
         result = []
@@ -210,38 +191,38 @@ class Classifier:
         # save models
         with open(self.clf_path, "wb") as f:
             pickle.dump(self.clf, f)
-        print("Saved clf")
+        logging.info("Saved clf")
         with open(self.class_path, "w") as f:
             json.dump({
                 "class_dict": self.class_dict,
                 "class_dict_reversed": self.class_dict_reversed,
             }, f)
-        print("Saved classes")
+        logging.info("Saved classes")
 
-        # for data_path in self.data_path_list[1:]:
-        #     if os.path.isfile(data_path):
-        #         print("Uploading", data_path)
-        #         self.storage.child(self.storage_dir + data_path).put("./" + data_path)
-        #         print("Uploaded", data_path)
+        for data_path in self.data_path_list[1:]:
+            if os.path.isfile(data_path):
+                logging.info(f"Uploading {data_path}")
+                self.storage.child(self.storage_dir + data_path).put("./" + data_path)
+                logging.info(f"Uploaded {data_path}")
 
     def add_item(self, item_id, imageUrls):
         x_train = self.clf._fit_X
         y_train = self.clf._y
-        print("Old classes", self.class_dict)
+        logging.info(f"Old classes {self.class_dict}")
         if item_id in self.class_dict:
-            print("Item with id", item_id, "already exists. Updating it.")
+            logging.info(f"Item with id {item_id} already exists. Updating it.")
             return self.update_item(item_id, imageUrls)
 
         try:
             img_list = []
             for url in imageUrls:
-                print(url)
+                logging.info(f"{url}")
                 try:
                     img = load_img_from_url(url)
                 except:
-                    print("Cannot load image", url)
+                    logging.info(f"Cannot load image {url}")
                     continue
-                print("Loaded")
+                logging.info("Loaded")
                 img = preprocess(img)
                 img_list.append(img)
 
@@ -258,7 +239,7 @@ class Classifier:
 
             x_train = np.concatenate([x_train, x])
             y_train = np.concatenate([y_train, y])
-            print("Labels", np.unique(y_train, return_counts=True))
+            logging.info(f"Labels {np.unique(y_train, return_counts=True)}")
 
             # train the model
             self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
@@ -266,7 +247,7 @@ class Classifier:
 
             self.class_dict[item_id] = new_label
             self.class_dict_reversed[str(new_label)] = item_id
-            print("New classes", self.class_dict)
+            logging.info(f"New classes {self.class_dict}")
 
             self.update_storage()
 
@@ -285,7 +266,7 @@ class Classifier:
     def delete_item(self, item_id):
         x_train = self.clf._fit_X
         y_train = self.clf._y
-        print("Old classes", self.class_dict)
+        logging.info(f"Old classes {self.class_dict}")
 
         if item_id not in self.class_dict:
             return {
@@ -297,8 +278,8 @@ class Classifier:
 
         x_train = x_train[y_train != target_label]
         y_train = y_train[y_train != target_label]
-        print('Target label', target_label)
-        print("Labels", np.unique(y_train, return_counts=True))
+        logging.info(f"Target label {target_label}")
+        logging.info(f"Labels {np.unique(y_train, return_counts=True)}")
 
         # train the model
         self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
@@ -307,7 +288,7 @@ class Classifier:
         self.class_dict = {x: y for x, y in self.class_dict.items()
                            if x != item_id}
         self.class_dict_reversed = {x: y for x, y in self.class_dict_reversed.items() if y != item_id}
-        print("New classes", self.class_dict)
+        logging.info(f"New classes {self.class_dict}")
 
         # save models
         self.update_storage()
@@ -321,7 +302,7 @@ class Classifier:
         global clf, class_dict, class_dict_reversed
         x_train = self.clf._fit_X
         y_train = self.clf._y
-        print("Old classes", self.class_dict)
+        logging.info(f"Old classes {self.class_dict}")
 
         if item_id not in self.class_dict:
             return {
@@ -333,13 +314,13 @@ class Classifier:
         try:
             img_list = []
             for url in imageUrls:
-                print(url)
+                logging.info(f"{url}")
                 try:
                     img = load_img_from_url(url)
                 except:
-                    print("Cannot load image", url)
+                    logging.info(f"Cannot load image {url}")
                     continue
-                print("Loaded")
+                logging.info("Loaded")
                 img = preprocess(img)
                 img_list.append(img)
 
@@ -354,8 +335,8 @@ class Classifier:
 
             x_train = x_train[y_train != target_label]
             y_train = y_train[y_train != target_label]
-            print('Target label', target_label)
-            print(y_train)
+            logging.info(f"Target label {target_label}")
+            logging.info(f"Labels {np.unique(y_train, return_counts=True)}")
 
             self.class_dict = {x: y for x, y in self.class_dict.items() if x != item_id}
             self.class_dict_reversed = {x: y for x, y in self.class_dict_reversed.items() if y != item_id}
@@ -366,7 +347,7 @@ class Classifier:
 
             x_train = np.concatenate([x_train, x])
             y_train = np.concatenate([y_train, y])
-            print("Labels", np.unique(y_train, return_counts=True))
+            logging.info(f"Labels {np.unique(y_train, return_counts=True)}")
 
             # train the model
             self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
@@ -374,7 +355,7 @@ class Classifier:
 
             self.class_dict[item_id] = target_label
             self.class_dict_reversed[str(target_label)] = item_id
-            print("New classes", self.class_dict)
+            logging.info(f"New classes {self.class_dict}")
 
             self.update_storage()
 
