@@ -7,8 +7,10 @@ from models import AddItemForm
 from fastapi.middleware.cors import CORSMiddleware
 from classifier import Classifier
 import uuid
+import logging
 
 
+logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
 origins = [
@@ -52,21 +54,21 @@ def extract_payload(payload_str):
 def my_task(method, data):
     global queue_task
     my_id = uuid.uuid4()
-    print(f"Adding {method} {my_id} to the queue")
+    logging.info(f"Adding {method} {my_id} to the queue")
     queue_task.append(my_id)
 
     try:
         while True:
             if queue_task[0] == my_id:
                 break
-            print("Check", method, my_id)
+            logging.info(f"Check {method} {my_id}")
             time.sleep(5)
             continue
     except:
-        print("Error when processing queue")
+        logging.info("Error when processing queue")
         return
 
-    print(f"Processing {method} {my_id}")
+    logging.info(f"Processing {method} {my_id}")
     if method == "add":
         add_item_task(*data)
     elif method == "delete":
@@ -79,27 +81,27 @@ def my_task(method, data):
 
 
 def add_item_task(item_id, imageUrls):
-    print("=====================================")
-    print("Start ADDING task", item_id)
+    logging.info("=====================================")
+    logging.info(f"Start ADDING task {item_id}")
     res = model.add_item(item_id, imageUrls)
-    print("End ADDING task", item_id, res)
-    print("=====================================")
+    logging.info(f"End ADDING task {item_id} {res}")
+    logging.info("=====================================")
 
 
 def delete_item_task(item_id):
-    print("=====================================")
-    print("Start DELETING task", item_id)
+    logging.info("=====================================")
+    logging.info(f"Start DELETING task {item_id}")
     res = model.delete_item(item_id)
-    print("End DELETING task", item_id, res)
-    print("=====================================")
+    logging.info(f"End DELETING task {item_id} {res}")
+    logging.info("=====================================")
 
 
 def update_item_task(item_id, imageUrls):
-    print("=====================================")
-    print("Start UPDATING task", item_id)
+    logging.info("=====================================")
+    logging.info(f"Start UPDATING task {item_id}")
     res = model.update_item(item_id, imageUrls)
-    print("End UPDATING task", item_id, res)
-    print("=====================================")
+    logging.info(f"End UPDATING task {item_id} {res}")
+    logging.info("=====================================")
 
 
 @app.get('/api/classes', status_code=status.HTTP_200_OK)
@@ -128,7 +130,7 @@ async def compare_image(file: UploadFile = File(...)):
         nparr = np.fromstring(contents, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         result = model.get_pred(img)
-        print("Result", result)
+        logging.info(f"Result {result}")
 
         return {
             "itemIds": result
