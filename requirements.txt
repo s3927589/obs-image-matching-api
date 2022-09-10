@@ -7,4 +7,3 @@ fastapi
 uvicorn
 python-multipart
 pyrebase4
-pika

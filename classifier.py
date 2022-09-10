@@ -210,11 +210,13 @@ class Classifier:
         # save models
         with open(self.clf_path, "wb") as f:
             pickle.dump(self.clf, f)
+        print("Saved clf")
         with open(self.class_path, "w") as f:
             json.dump({
                 "class_dict": self.class_dict,
                 "class_dict_reversed": self.class_dict_reversed,
             }, f)
+        print("Saved classes")
 
         # for data_path in self.data_path_list[1:]:
         #     if os.path.isfile(data_path):
@@ -256,7 +258,7 @@ class Classifier:
 
             x_train = np.concatenate([x_train, x])
             y_train = np.concatenate([y_train, y])
-            print(y_train)
+            print("Labels", np.unique(y_train, return_counts=True))
 
             # train the model
             self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
@@ -296,7 +298,7 @@ class Classifier:
         x_train = x_train[y_train != target_label]
         y_train = y_train[y_train != target_label]
         print('Target label', target_label)
-        print(y_train)
+        print("Labels", np.unique(y_train, return_counts=True))
 
         # train the model
         self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
@@ -364,7 +366,7 @@ class Classifier:
 
             x_train = np.concatenate([x_train, x])
             y_train = np.concatenate([y_train, y])
-            print(y_train)
+            print("Labels", np.unique(y_train, return_counts=True))
 
             # train the model
             self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
