@@ -1,0 +1,12 @@
+__pycache__
+efficient.onnx
+knn.pickle
+classes.json
+.git
+Procfile
+heroku.yml
+Aptfile
+runtime.txt
+README.md
+.gitignore
+.slugignore
