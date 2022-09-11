@@ -34,6 +34,7 @@ STORAGE_DIR = "ai/"
 
 model = Classifier(MODEL_PATH, CLF_PATH, CLASS_PATH, STORAGE_DIR)
 queue_task = []
+timeout = 3600
 
 
 def create_payload(method, data):
@@ -58,7 +59,11 @@ def my_task(method, data):
     queue_task.append(my_id)
 
     try:
+        st = time.time()
         while True:
+            if time.time() - st > timeout:
+                break
+
             if queue_task[0] == my_id:
                 break
             logging.info(f"Check {method} {my_id}")
@@ -69,12 +74,16 @@ def my_task(method, data):
         return
 
     logging.info(f"Processing {method} {my_id}")
-    if method == "add":
-        add_item_task(*data)
-    elif method == "delete":
-        delete_item_task(*data)
-    elif method == "update":
-        update_item_task(*data)
+    try:
+        if method == "add":
+            add_item_task(*data)
+        elif method == "delete":
+            delete_item_task(*data)
+        elif method == "update":
+            update_item_task(*data)
+    except:
+        logging.info(f"Error {method} {my_id}")
+        pass
 
     # the task is done, remove it from the queue
     queue_task.pop(0)

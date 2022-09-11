@@ -338,8 +338,6 @@ class Classifier:
             logging.info(f"Target label {target_label}")
             logging.info(f"Labels {np.unique(y_train, return_counts=True)}")
 
-            self.class_dict = {x: y for x, y in self.class_dict.items() if x != item_id}
-            self.class_dict_reversed = {x: y for x, y in self.class_dict_reversed.items() if y != item_id}
 
             x = self.extract_features(img_list)
             y = [target_label] * len(x)
@@ -353,8 +351,6 @@ class Classifier:
             self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
             self.clf.fit(x_train, y_train)
 
-            self.class_dict[item_id] = target_label
-            self.class_dict_reversed[str(target_label)] = item_id
             logging.info(f"New classes {self.class_dict}")
 
             self.update_storage()
