@@ -54,10 +54,10 @@ def extract_payload(payload_str):
 
 
 def my_task(method, data):
-    my_id = uuid.uuid4()
+    my_id = str(uuid.uuid4())
     logging.info(f"Adding {method} {my_id} to the queue")
     with open(queue_file, "a") as f:
-        f.write(my_id + "\n")
+        f.write(f"{my_id}\n")
 
     try:
         st = time.time()
