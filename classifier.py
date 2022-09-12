@@ -10,10 +10,19 @@ import cv2
 from sklearn.neighbors import KNeighborsClassifier
 import pyrebase
 import logging
+import asyncio
 
 
 logging.basicConfig(level=logging.INFO)
 TARGET_SIZE = (300, 300)
+
+
+async def upload_storage(data_path_list, storage, storage_dir):
+    for data_path in data_path_list[1:]:
+        if os.path.isfile(data_path):
+            logging.info(f"Uploading {data_path}")
+            storage.child(storage_dir + data_path).put("./" + data_path)
+            logging.info(f"Uploaded {data_path}")
 
 
 def preprocess(img):
@@ -199,11 +208,14 @@ class Classifier:
             }, f)
         logging.info("Saved classes")
 
-        for data_path in self.data_path_list[1:]:
-            if os.path.isfile(data_path):
-                logging.info(f"Uploading {data_path}")
-                self.storage.child(self.storage_dir + data_path).put("./" + data_path)
-                logging.info(f"Uploaded {data_path}")
+        asyncio.run(upload_storage(self.data_path_list,
+                                   self.storage,
+                                   self.storage_dir))
+        # for data_path in self.data_path_list[1:]:
+        #     if os.path.isfile(data_path):
+        #         logging.info(f"Uploading {data_path}")
+        #         self.storage.child(self.storage_dir + data_path).put("./" + data_path)
+        #         logging.info(f"Uploaded {data_path}")
 
     def add_item(self, item_id, imageUrls):
         x_train = self.clf._fit_X

@@ -34,6 +34,7 @@ STORAGE_DIR = "ai/"
 
 model = Classifier(MODEL_PATH, CLF_PATH, CLASS_PATH, STORAGE_DIR)
 queue_task = []
+queue_file = "queue.txt"
 timeout = 3600
 
 
@@ -53,10 +54,10 @@ def extract_payload(payload_str):
 
 
 def my_task(method, data):
-    global queue_task
     my_id = uuid.uuid4()
     logging.info(f"Adding {method} {my_id} to the queue")
-    queue_task.append(my_id)
+    with open(queue_file, "a") as f:
+        f.write(my_id + "\n")
 
     try:
         st = time.time()
@@ -64,7 +65,9 @@ def my_task(method, data):
             if time.time() - st > timeout:
                 break
 
-            if queue_task[0] == my_id:
+            with open(queue_file, "r") as f:
+                id = f.readline().strip()
+            if id == my_id:
                 break
             logging.info(f"Check {method} {my_id}")
             time.sleep(5)
