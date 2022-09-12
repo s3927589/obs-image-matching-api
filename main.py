@@ -3,6 +3,7 @@ import numpy as np
 import time
 import cv2
 import json
+import os
 from models import AddItemForm
 from fastapi.middleware.cors import CORSMiddleware
 from classifier import Classifier
@@ -10,6 +11,7 @@ import uuid
 import logging
 
 
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "./obs-rmit-686bb94f09ee.json"
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 
@@ -74,16 +76,16 @@ def my_task(method, data):
         return
 
     logging.info(f"Processing {method} {my_id}")
-    try:
-        if method == "add":
-            add_item_task(*data)
-        elif method == "delete":
-            delete_item_task(*data)
-        elif method == "update":
-            update_item_task(*data)
-    except:
-        logging.info(f"Error {method} {my_id}")
-        pass
+    # try:
+    if method == "add":
+        add_item_task(*data)
+    elif method == "delete":
+        delete_item_task(*data)
+    elif method == "update":
+        update_item_task(*data)
+    # except:
+    #     logging.info(f"Error {method} {my_id}")
+    #     pass
 
     # the task is done, remove it from the queue
     queue_task.pop(0)

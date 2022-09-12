@@ -6,5 +6,6 @@ tqdm
 fastapi
 uvicorn
 python-multipart
-pyrebase4
 gunicorn
+google-cloud-storage
+requests==2.28.1

@@ -1,28 +1,37 @@
+from google.cloud import storage
+import io
 import pickle
 import os
 import json
 import numpy as np
 import urllib.request
 import random
-# from tqdm import tqdm
 import onnxruntime as rt
 import cv2
 from sklearn.neighbors import KNeighborsClassifier
-import pyrebase
 import logging
-import asyncio
 
 
 logging.basicConfig(level=logging.INFO)
 TARGET_SIZE = (300, 300)
 
 
-async def upload_storage(data_path_list, storage, storage_dir):
-    for data_path in data_path_list[1:]:
-        if os.path.isfile(data_path):
-            logging.info(f"Uploading {data_path}")
-            storage.child(storage_dir + data_path).put("./" + data_path)
-            logging.info(f"Uploaded {data_path}")
+def upload_cloud_storage(data_path, file_io, storage_dir):
+    logging.info(f"Uploading {data_path}")
+    storage_client = storage.Client()
+    bucket = storage_client.bucket("obs-rmit.appspot.com")
+    blob = bucket.blob(storage_dir + data_path)
+    file_io.seek(0)
+    blob.upload_from_file(file_io)
+    logging.info(f"Uploaded {data_path}")
+
+
+# async def upload_storage(data_path_list, storage, storage_dir):
+#     for data_path in data_path_list[1:]:
+#         if os.path.isfile(data_path):
+#             logging.info(f"Uploading {data_path}")
+#             storage.child(storage_dir + data_path).put("./" + data_path)
+#             logging.info(f"Uploaded {data_path}")
 
 
 def preprocess(img):
@@ -102,17 +111,17 @@ class Classifier:
         self.data_path_list = [model_path, clf_path, class_path]
 
         # connect to firebase
-        config = {
-            "apiKey": "AIzaSyDHDyFoXS-E7sZNJQ9G9Px9AEMStUtyrjw",
-            "authDomain": "obs-rmit.firebaseapp.com",
-            "databaseURL": "",
-            "projectId": "obs-rmit",
-            "storageBucket": "obs-rmit.appspot.com",
-            "serviceAccount": "./obs-rmit-firebase-adminsdk.json"
-        }
+        # config = {
+        #     "apiKey": "AIzaSyDHDyFoXS-E7sZNJQ9G9Px9AEMStUtyrjw",
+        #     "authDomain": "obs-rmit.firebaseapp.com",
+        #     "databaseURL": "",
+        #     "projectId": "obs-rmit",
+        #     "storageBucket": "obs-rmit.appspot.com",
+        #     "serviceAccount": "./obs-rmit-firebase-adminsdk.json"
+        # }
 
-        firebase_app = pyrebase.initialize_app(config)
-        self.storage = firebase_app.storage()
+        # firebase_app = pyrebase.initialize_app(config)
+        # self.storage = firebase_app.storage()
 
         # load model and config
         self.model = None
@@ -127,7 +136,11 @@ class Classifier:
         for data_path in self.data_path_list:
             if not os.path.isfile(data_path):
                 logging.info(f"Downloading {data_path}")
-                self.storage.child(self.storage_dir + data_path).download(self.storage_dir + data_path, "./" + data_path)
+                storage_client = storage.Client()
+                bucket = storage_client.bucket("obs-rmit.appspot.com")
+                blob = bucket.blob(self.storage_dir + data_path)
+                blob.download_to_filename(data_path)
+                # self.storage.child(self.storage_dir + data_path).download(self.storage_dir + data_path, "./" + data_path)
                 logging.info(f"Downloaded {data_path}")
 
         providers = ['CPUExecutionProvider']
@@ -201,22 +214,24 @@ class Classifier:
         # save models
         with open(self.clf_path, "wb") as f:
             pickle.dump(self.clf, f)
+
         logging.info("Saved clf")
-        with open(self.class_path, "w") as f:
-            json.dump({
+
+        clf_io = io.BytesIO()
+        pickle.dump(self.clf, clf_io)
+        upload_cloud_storage(self.clf_path, clf_io, self.storage_dir)
+
+        class_data = {
                 "class_dict": self.class_dict,
                 "class_dict_reversed": self.class_dict_reversed,
-            }, f)
-        logging.info("Saved classes")
+            }
+        with open(self.class_path, "w") as f:
+            json.dump(class_data, f)
+            logging.info("Saved classes")
 
-        asyncio.run(upload_storage(self.data_path_list,
-                                   self.storage,
-                                   self.storage_dir))
-        # for data_path in self.data_path_list[1:]:
-        #     if os.path.isfile(data_path):
-        #         logging.info(f"Uploading {data_path}")
-        #         self.storage.child(self.storage_dir + data_path).put("./" + data_path)
-        #         logging.info(f"Uploaded {data_path}")
+        class_io = io.BytesIO()
+        class_io.write(json.dumps(class_data).encode())
+        upload_cloud_storage(self.class_path, class_io, self.storage_dir)
 
     def add_item(self, item_id, imageUrls):
         x_train = self.clf._fit_X

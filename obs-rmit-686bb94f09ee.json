@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "obs-rmit",
+  "private_key_id": "686bb94f09eec454c16ce22de308b19be93e0f04",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDNEaWGIUpojVDS\n8d7LIWwHVJybR8utAM0gVMI6RHBdYGz2LejJcWlBK2Lz64e+ft0aMDklAEaEFAVE\nrHxu4LstwhS8tBeO24hndaBdEw8JQGN9pMFXRw1CwC1gKplHZevOp3IDebYlQdLD\ndJ942cuE9jp7K1CvIVEZl6sZAYI3YJNKq+HBI0DoFdMnQ0TDyAzBQ2/LehCUY8RM\n5iMDyNKGE2jcAjeMYHxnFsGpRmkqv4cOdfJJ2StbxXrn9+lOx/JAD0o9ySAcrIzp\n2CHpyo3tc8RaOeQX/CBCkuCBbiWFMpRfuCF5KMf8yHg8MBMJ9bCH7DHB/ofJB5lV\nvn6hMXGZAgMBAAECggEAJyeXqHLaS3iyBjju3m+g+gxWg5KTidKVl/b/B9OR9c5H\nt8B/yli4bVxMnkCqMD32Vv3+pzk0fZr5/4kEkEIiEyRTw80KE3mIw6JSrnrJW+2a\noX6P+Otk1Youj8ZKcna8Lb7MduvqEpaNGMs/eLpzEM3X0DUuyGWO39lU7qcaVxqm\nbO9Vq1IWVeZeKpSboFjGpbYiArORgpD74ANq5WT0M8+MSCRMixXfcX9ZrU8FdCR2\nD/3F3+eLev7k51zI9QX9KrZ+8WeRQqgYgi/J6B3LknA/5CE08Yj4BxMjtE9Way19\nIL/jVqtrkk6lImkxf+S7oG4Bi8nqT5+zGqcfTYkjVQKBgQD5cpjo+KcILA/A+Yk2\nPPsRdqR/KXWzAwLNMDwg/Asds0nLNLp6W3bG/5W7785Mh0d23AvsTZf0z1G7azFM\n5Tkx6So6ZcewSl/pdQdileYHEI7ofas6870lW/jD6FCTZzuyZsCR3ipvKa6zMker\nhOKwNW+BZc+li83l+N1Ys5kINQKBgQDSdKBD2L0+w8swzPf8JUxiyQWdnx2Piig4\nYRDK17ksP52VIPBmEQuzEyC98XhCi2GOEARRTys3tsSCXjj7VSV9Sc2g+iKOMT/V\nVUCcjO5zSipdRJnkDS0Kvq81cM6BQ6KZMoqg/RyHPWhpooplJ7U8OybSHDsylqDF\nI5TS/0HYVQKBgDiDviEKNM2lLeyKnIutRTSvrJUiz4e/JuNWCklu0RXpiM6BI76U\n+lQbk9EAg7zS6V4EfK8M5WCRl/LeVk0Vod+s8+RHKvbF4vUBjqrHS1ZOahJCZoj0\nr+XG8JVyDM9YlC3XGcnyi6qjxvDSc2posPM7KAgpCOJ4yi1QNNXj2sgBAoGBAKoa\nX+tWxOd1Q8eG9C2WTB5QUryq/i6lwYqIUhVRtbbhGFKQFB67SlSMclt0T/qhQ9Ga\nepLpxYm7rSueUro6gRm6THz/kGyTu/+Hb7jZZGZFHObT6vrb93sG0wED07XBYCwp\nIMmsq6FX7gvrt6a5KJCtUtxiuypRe1K8Rq8gaC0dAoGASYRQ8CQ9QHL9x5WjMHVL\nvFr3vt+79HMBVY803qDqyEKWztSyzaAx9rqIXzTiwqzncfpHQwhYhcIYPuvQhPxg\ns5C28QSKLPFHg6P758dHgvxdBw4XaR/duTdRVQDTULvT7CtKfPdNFxtaSFJjpQSU\nTJ8cJ9KO9wKHPgLSR7OjMuk=\n-----END PRIVATE KEY-----\n",
+  "client_email": "obs-dev1@obs-rmit.iam.gserviceaccount.com",
+  "client_id": "117533065813631961325",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/obs-dev1%40obs-rmit.iam.gserviceaccount.com"
+}
