@@ -4,7 +4,7 @@ import json
 import numpy as np
 import urllib.request
 import random
-from tqdm import tqdm
+# from tqdm import tqdm
 import onnxruntime as rt
 import cv2
 from sklearn.neighbors import KNeighborsClassifier
@@ -153,11 +153,12 @@ class Classifier:
 
     def extract_features(self, img_list):
         data = []
-        for raw_img in tqdm(img_list):
+        for i, raw_img in enumerate(img_list):
+            logging.info(f"Process Image {i}")
             try:
                 imgAugList = augment(raw_img)
                 feats = self.model.run(["top_dropout"],
-                                  {"input_4": np.array(imgAugList).astype("float32")})[0]
+                                       {"input_4": np.array(imgAugList).astype("float32")})[0]
                 data.extend(feats)
             except:
                 continue
