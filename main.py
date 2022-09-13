@@ -4,7 +4,7 @@ import time
 import cv2
 import json
 import os
-from models import AddItemForm
+from models import AddItemForm, DeleteItemForm
 from fastapi.middleware.cors import CORSMiddleware
 from classifier import Classifier
 import uuid
@@ -33,6 +33,7 @@ CLF_PATH = "knn.pickle"
 CLASS_PATH = "classes.json"
 
 STORAGE_DIR = "ai/"
+MY_SECRET_KEY = "bdaba086-70a2-4034-a64b-fedf01677751"
 
 model = Classifier(MODEL_PATH, CLF_PATH, CLASS_PATH, STORAGE_DIR)
 queue_task = []
@@ -66,6 +67,10 @@ def my_task(method, data):
             if time.time() - st > timeout:
                 break
 
+            if len(queue_task) == 0:
+                logging.info("No task to do")
+                return
+
             if queue_task[0] == my_id:
                 break
             logging.info(f"Check {method} {my_id}")
@@ -76,16 +81,15 @@ def my_task(method, data):
         return
 
     logging.info(f"Processing {method} {my_id}")
-    # try:
-    if method == "add":
-        add_item_task(*data)
-    elif method == "delete":
-        delete_item_task(*data)
-    elif method == "update":
-        update_item_task(*data)
-    # except:
-    #     logging.info(f"Error {method} {my_id}")
-    #     pass
+    try:
+        if method == "add":
+            add_item_task(*data)
+        elif method == "delete":
+            delete_item_task(*data)
+        elif method == "update":
+            update_item_task(*data)
+    except:
+        logging.info(f"Error {method} {my_id}")
 
     # the task is done, remove it from the queue
     queue_task.pop(0)
@@ -115,6 +119,13 @@ def update_item_task(item_id, imageUrls):
     logging.info("=====================================")
 
 
+@app.get('/', status_code=status.HTTP_200_OK)
+def hello():
+    return {
+        "message": "Welcome to Minh Anh's AI world"
+    }
+
+
 @app.get('/api/classes', status_code=status.HTTP_200_OK)
 def get_classes():
     if model is not None:
@@ -125,13 +136,13 @@ def get_classes():
     }
 
 
-@app.get('/api/reset', status_code=status.HTTP_200_OK)
-def reset_model():
-    model.load_data()
+# @app.get('/api/reset', status_code=status.HTTP_200_OK)
+# def reset_model():
+#     model.load_data()
 
-    return {
-        "message": "Model is reset successfully"
-    }
+#     return {
+#         "message": "Model is reset successfully"
+#     }
 
 
 @app.post('/api/image', status_code=status.HTTP_200_OK)
@@ -157,7 +168,13 @@ async def compare_image(file: UploadFile = File(...)):
 @app.post('/api/add_item', status_code=status.HTTP_200_OK)
 async def add_item(data: AddItemForm, background_tasks: BackgroundTasks):
     item_id = data.item_id
+    secret_key = data.secret_key
     imageUrls = data.imageUrls
+
+    if secret_key != MY_SECRET_KEY:
+        return {
+            "message": "Failed to authenticate",
+        }
 
     background_tasks.add_task(my_task, "add", [item_id, imageUrls])
     return {
@@ -165,8 +182,16 @@ async def add_item(data: AddItemForm, background_tasks: BackgroundTasks):
     }
 
 
-@app.delete('/api/delete_item/{item_id}', status_code=status.HTTP_200_OK)
-async def delete_item(item_id: str, background_tasks: BackgroundTasks):
+@app.delete('/api/delete_item', status_code=status.HTTP_200_OK)
+async def delete_item(data: DeleteItemForm, background_tasks: BackgroundTasks):
+    item_id = data.item_id
+    secret_key = data.secret_key
+
+    if secret_key != MY_SECRET_KEY:
+        return {
+            "message": "Failed to authenticate",
+        }
+
     background_tasks.add_task(my_task, "delete", [item_id])
     return {
         "message": "Deleting new item",
@@ -176,7 +201,13 @@ async def delete_item(item_id: str, background_tasks: BackgroundTasks):
 @app.put('/api/update_item', status_code=status.HTTP_200_OK)
 async def update_item(data: AddItemForm, background_tasks: BackgroundTasks):
     item_id = data.item_id
+    secret_key = data.secret_key
     imageUrls = data.imageUrls
+
+    if secret_key != MY_SECRET_KEY:
+        return {
+            "message": "Failed to authenticate",
+        }
 
     background_tasks.add_task(my_task, "update", [item_id, imageUrls])
     return {

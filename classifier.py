@@ -35,8 +35,8 @@ def upload_cloud_storage(data_path, file_io, storage_dir):
 
 
 def preprocess(img):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img = cv2.resize(img, TARGET_SIZE)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
 
