@@ -182,7 +182,7 @@ async def add_item(data: AddItemForm, background_tasks: BackgroundTasks):
     }
 
 
-@app.delete('/api/delete_item', status_code=status.HTTP_200_OK)
+@app.post('/api/delete_item', status_code=status.HTTP_200_OK)
 async def delete_item(data: DeleteItemForm, background_tasks: BackgroundTasks):
     item_id = data.item_id
     secret_key = data.secret_key

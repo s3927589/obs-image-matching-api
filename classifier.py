@@ -313,9 +313,10 @@ class Classifier:
         self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
         self.clf.fit(x_train, y_train)
 
-        self.class_dict = {x: y for x, y in self.class_dict.items()
-                           if x != item_id}
-        self.class_dict_reversed = {x: y for x, y in self.class_dict_reversed.items() if y != item_id}
+        del self.class_dict[item_id]
+        del self.class_dict_reversed[str(target_label)]
+        # self.class_dict = {x: y for x, y in self.class_dict.items() if x != item_id}
+        # self.class_dict_reversed = {x: y for x, y in self.class_dict_reversed.items() if y != item_id}
         logging.info(f"New classes {self.class_dict}")
 
         # save models
