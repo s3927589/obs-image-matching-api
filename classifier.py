@@ -234,8 +234,15 @@ class Classifier:
         upload_cloud_storage(self.class_path, class_io, self.storage_dir)
 
     def add_item(self, item_id, imageUrls):
-        x_train = self.clf._fit_X
-        y_train = self.clf._y
+        try:
+            x_train = self.clf._fit_X
+            y_train = self.clf._y
+        except:
+            logging.info(f"New item from empty")
+            x_train = np.array([])
+            y_train = np.array([])
+
+        logging.info(f"Old Labels {np.unique(y_train, return_counts=True)}")
         logging.info(f"Old classes {self.class_dict}")
         if item_id in self.class_dict:
             logging.info(f"Item with id {item_id} already exists. Updating it.")
@@ -261,12 +268,22 @@ class Classifier:
                 }
 
             x = self.extract_features(img_list)
-            new_label = int(np.max(y_train) + 1)
+            if len(self.class_dict) == 0:
+                new_label = 0
+            else:
+                new_label = int(np.max(y_train) + 1)
             y = [new_label] * len(x)
             y = np.array(y)
 
-            x_train = np.concatenate([x_train, x])
-            y_train = np.concatenate([y_train, y])
+            if len(x_train) > 0:
+                x_train = np.concatenate([x_train, x])
+            else:
+                x_train = x
+
+            if len(y_train) > 0:
+                y_train = np.concatenate([y_train, y])
+            else:
+                y_train = y
             logging.info(f"Labels {np.unique(y_train, return_counts=True)}")
 
             # train the model
@@ -292,8 +309,15 @@ class Classifier:
         }
 
     def delete_item(self, item_id):
-        x_train = self.clf._fit_X
-        y_train = self.clf._y
+        try:
+            x_train = self.clf._fit_X
+            y_train = self.clf._y
+        except:
+            logging.info(f"New item from empty")
+            x_train = np.array([])
+            y_train = np.array([])
+
+        logging.info(f"Old Labels {np.unique(y_train, return_counts=True)}")
         logging.info(f"Old classes {self.class_dict}")
 
         if item_id not in self.class_dict:
@@ -302,10 +326,22 @@ class Classifier:
                 "message": "Item does not exist"
             }
 
+        if len(self.class_dict) == 1:
+            self.clf = KNeighborsClassifier(n_neighbors=3, metric="cosine")
+            self.class_dict = {}
+            self.class_dict_reversed = {}
+            self.update_storage()
+
+            return {
+                "success": True,
+                "message": "Deleted item successfully."
+            }
+
         target_label = int(self.class_dict[item_id])
 
         x_train = x_train[y_train != target_label]
         y_train = y_train[y_train != target_label]
+        y_train[y_train > target_label] = y_train[y_train > target_label] - 1
         logging.info(f"Target label {target_label}")
         logging.info(f"Labels {np.unique(y_train, return_counts=True)}")
 
@@ -314,7 +350,10 @@ class Classifier:
         self.clf.fit(x_train, y_train)
 
         del self.class_dict[item_id]
-        del self.class_dict_reversed[str(target_label)]
+        for key in self.class_dict:
+            if self.class_dict[key] > target_label:
+                self.class_dict[key] = self.class_dict[key] - 1
+        self.class_dict_reversed = {str(y): x for x, y in self.class_dict.items()}
         # self.class_dict = {x: y for x, y in self.class_dict.items() if x != item_id}
         # self.class_dict_reversed = {x: y for x, y in self.class_dict_reversed.items() if y != item_id}
         logging.info(f"New classes {self.class_dict}")
@@ -329,8 +368,15 @@ class Classifier:
 
     def update_item(self, item_id, imageUrls):
         global clf, class_dict, class_dict_reversed
-        x_train = self.clf._fit_X
-        y_train = self.clf._y
+        try:
+            x_train = self.clf._fit_X
+            y_train = self.clf._y
+        except:
+            logging.info(f"New item from empty")
+            x_train = np.array([])
+            y_train = np.array([])
+
+        logging.info(f"Old Labels {np.unique(y_train, return_counts=True)}")
         logging.info(f"Old classes {self.class_dict}")
 
         if item_id not in self.class_dict:
@@ -395,3 +441,4 @@ class Classifier:
             "success": False,
             "message": "Cannot update item"
         }
+
